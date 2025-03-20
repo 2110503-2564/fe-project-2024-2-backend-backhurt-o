@@ -40,6 +40,7 @@ Create a `.env.local` file in the root directory with the following variables:
 
 ```
 NEXT_PUBLIC_API_URL=http://localhost:5003/api/v1
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR-API-MAP-KEY
 ```
 
 Adjust the URL to match your backend API endpoint.
