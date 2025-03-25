@@ -25,7 +25,18 @@ const ReservationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancelSuccess, setCancelSuccess] = useState('');
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTimeSlot, setNewTimeSlot] = useState('');
+  const [updateError, setUpdateError] = useState('');
   const router = useRouter();
+
+  const timeSlots = [
+    "09:00 - 12:00",
+    "12:00 - 15:00",
+    "15:00 - 18:00",
+    "18:00 - 21:00"
+  ];
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -54,17 +65,47 @@ const ReservationsPage = () => {
 
   const cancelReservation = async (id: string) => {
     try {
-      await api.put(`/reservations/${id}/cancel`);
-      setCancelSuccess('Reservation cancelled successfully');
-      // Update the local state
-      setReservations(reservations.map(res => 
-        res._id === id ? { ...res, status: 'cancelled' } : res
-      ));
+      await api.delete(`/reservations/${id}`);
+      setCancelSuccess('Reservation deleted successfully');
+      // Remove the reservation from local state
+      setReservations(reservations.filter(res => res._id !== id));
       setTimeout(() => setCancelSuccess(''), 3000);
     } catch (err) {
-      console.error('Error cancelling reservation:', err);
-      setError('Failed to cancel reservation. Please try again.');
+      console.error('Error deleting reservation:', err);
+      setError('Failed to delete reservation. Please try again.');
       setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleEdit = (reservation: Reservation) => {
+    setEditingReservation(reservation);
+    setNewDate(reservation.date.split('T')[0]); // Format date for input
+    setNewTimeSlot(reservation.timeSlot);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingReservation) return;
+
+    try {
+      await api.put(`/reservations/${editingReservation._id}`, {
+        date: newDate,
+        timeSlot: newTimeSlot
+      });
+
+      // Update local state
+      setReservations(reservations.map(res =>
+        res._id === editingReservation._id
+          ? { ...res, date: newDate, timeSlot: newTimeSlot }
+          : res
+      ));
+
+      setEditingReservation(null);
+      setCancelSuccess('Reservation updated successfully');
+      setTimeout(() => setCancelSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error updating reservation:', err);
+      setUpdateError('Failed to update reservation. Please try again.');
+      setTimeout(() => setUpdateError(''), 3000);
     }
   };
 
@@ -101,6 +142,58 @@ const ReservationsPage = () => {
     );
   }
 
+  if (editingReservation) {
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="mt-3 text-center">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Edit Reservation</h3>
+            <div className="mt-2 px-7 py-3">
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Time Slot</label>
+                <select
+                  value={newTimeSlot}
+                  onChange={(e) => setNewTimeSlot(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                >
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+              {updateError && (
+                <div className="mb-4 text-red-500 text-sm">{updateError}</div>
+              )}
+            </div>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleUpdate}
+                className="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                Update
+              </button>
+              <button
+                onClick={() => setEditingReservation(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -113,15 +206,17 @@ const ReservationsPage = () => {
               View and manage your co-working space reservations
             </p>
           </div>
-          <div className="mt-5 flex lg:mt-0 lg:ml-4">
-            <Link
-              href="/coworking-spaces"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              <FiCalendar className="-ml-1 mr-2 h-5 w-5" />
-              Book New Space
-            </Link>
-          </div>
+          {reservations.length > 0 && (
+            <div className="mt-5 flex lg:mt-0 lg:ml-4">
+              <Link
+                href="/coworking-spaces"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                <FiCalendar className="-ml-1 mr-2 h-5 w-5" />
+                Book New Space
+              </Link>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -146,6 +241,7 @@ const ReservationsPage = () => {
                 href="/coworking-spaces"
                 className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
               >
+                <FiCalendar className="-ml-1 mr-2 h-5 w-5" />
                 Book a Space Now
               </Link>
             </div>
@@ -197,12 +293,20 @@ const ReservationsPage = () => {
                           </div>
                           
                           {isActive && !isPast && (
-                            <button
-                              onClick={() => cancelReservation(reservation._id)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
-                            >
-                              Cancel
-                            </button>
+                            <div className="space-x-2">
+                              <button
+                                onClick={() => handleEdit(reservation)}
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => cancelReservation(reservation._id)}
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           )}
                           
                           {isPast && isActive && (
@@ -222,4 +326,4 @@ const ReservationsPage = () => {
   );
 };
 
-export default ReservationsPage; 
+export default ReservationsPage;

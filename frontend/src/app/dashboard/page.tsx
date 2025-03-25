@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { FiCalendar, FiMapPin, FiClock, FiX, FiCheckCircle } from 'react-icons/fi';
+import { FiCalendar, FiMapPin, FiClock, FiX, FiCheckCircle, FiUsers, FiArrowRight } from 'react-icons/fi';
 
 interface Reservation {
   _id: string;
@@ -19,12 +19,21 @@ interface Reservation {
   status: string;
 }
 
+interface CoworkingSpace {
+  _id: string;
+  name: string;
+  location: string;
+  availableSeats: number;
+}
+
 const DashboardPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [suggestedSpaces, setSuggestedSpaces] = useState<CoworkingSpace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
+  const MAX_SUGGESTED_SPACES = 3;
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -33,7 +42,7 @@ const DashboardPage = () => {
     }
 
     if (isAuthenticated) {
-      fetchReservations();
+      Promise.all([fetchReservations(), fetchSuggestedSpaces()]);
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -51,13 +60,12 @@ const DashboardPage = () => {
     }
   };
 
-  const cancelReservation = async (id: string) => {
+  const fetchSuggestedSpaces = async () => {
     try {
-      await api.put(`/reservations/${id}/cancel`);
-      fetchReservations(); // Refresh the list after cancellation
+      const response = await api.get('/coworking-spaces?limit=3');
+      setSuggestedSpaces(response.data.data.slice(0, MAX_SUGGESTED_SPACES));
     } catch (err) {
-      console.error('Error cancelling reservation:', err);
-      setError('Failed to cancel reservation. Please try again.');
+      console.error('Error fetching suggested spaces:', err);
     }
   };
 
@@ -86,13 +94,18 @@ const DashboardPage = () => {
         
         <div className="mt-8">
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h2 className="text-lg leading-6 font-medium text-gray-900">
-                Welcome, {user?.name}
-              </h2>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Manage your co-working space reservations here.
-              </p>
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg leading-6 font-medium text-gray-900">Your Recent Reservations</h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    View your recent co-working space reservations
+                  </p>
+                </div>
+                <Link href="/reservations" className="text-sm text-indigo-600 hover:text-indigo-500">
+                  Edit your reservations <span aria-hidden="true">→</span>
+                </Link>
+              </div>
             </div>
             
             <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
@@ -156,15 +169,6 @@ const DashboardPage = () => {
                                 <span className="ml-1 text-sm text-red-500">Cancelled</span>
                               </div>
                             )}
-                            
-                            {reservation.status === 'active' && (
-                              <button
-                                onClick={() => cancelReservation(reservation._id)}
-                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200"
-                              >
-                                Cancel
-                              </button>
-                            )}
                           </div>
                         </div>
                       </li>
@@ -175,18 +179,43 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-        
-        <div className="mt-6 flex justify-center">
-          <Link
-            href="/coworking-spaces"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-          >
-            Find More Spaces
-          </Link>
+
+        {/* Suggested Spaces Section */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">Suggested Spaces</h2>
+            <Link href="/coworking-spaces" className="text-sm text-indigo-600 hover:text-indigo-500">
+              View all spaces <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {suggestedSpaces.map((space) => (
+              <div key={space._id} className="bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">{space.name}</h3>
+                  <div className="mt-2 flex items-center text-sm text-gray-500">
+                    <FiMapPin className="flex-shrink-0 mr-1.5 h-4 w-4" />
+                    <p>{space.location}</p>
+                  </div>
+                  <div className="mt-2 flex items-center text-sm text-gray-500">
+                    <FiUsers className="flex-shrink-0 mr-1.5 h-4 w-4" />
+                    <p>{space.availableSeats} available seats</p>
+                  </div>
+                </div>
+                <Link
+                  href={`/coworking-spaces/${space._id}`}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 w-full justify-center"
+                >
+                  View Details <FiArrowRight className="ml-1" />
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default DashboardPage; 
+export default DashboardPage;

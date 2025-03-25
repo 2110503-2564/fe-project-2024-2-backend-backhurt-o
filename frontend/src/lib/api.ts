@@ -43,7 +43,7 @@ api.interceptors.response.use(
     // Handle authentication errors
     if (error.response?.status === 401) {
       // Handle unauthorized error (redirect to login, etc.)
-      if (typeof window !== 'undefined') {
+      if (typeof document !== 'undefined') { // Change window to document check
         localStorage.removeItem('token');
         
         // Only redirect if not already on the login page to avoid redirect loops
@@ -64,4 +64,4 @@ api.interceptors.response.use(
   }
 );
 
-export default api; 
+export default api;

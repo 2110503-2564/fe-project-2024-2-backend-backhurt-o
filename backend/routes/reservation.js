@@ -9,25 +9,24 @@ const {
     createReservation,
     updateReservation,
     deleteReservation,
-    getBookedSlots, // ✅ Add this function
-    cancelReservation // ✅ Add cancelReservation function here
+    getBookedSlots
 } = require('../controllers/reservation');
 
+// Admin can get all reservations
 router.route('/')
     .get(protect, authorize('admin'), getReservations)
     .post(protect, createReservation);
 
+// Users can get their reservations
 router.get('/my', protect, getMyReservations);
 
-// ✅ Add route to fetch booked slots for a coworking space
-router.get('/booked/:coworkingSpace/:date',protect ,getBookedSlots);
+// Get booked slots for a coworking space
+router.get('/booked/:coworkingSpace/:date', protect, getBookedSlots);
 
+// Both users and admins can get, update, and delete reservations
 router.route('/:id')
     .get(protect, getReservation)
     .put(protect, updateReservation)
     .delete(protect, deleteReservation);
-
-// ✅ Separate route for cancelling the reservation
-router.put('/:id/cancel', protect, cancelReservation); // ✅ This route handles the cancel action
 
 module.exports = router;

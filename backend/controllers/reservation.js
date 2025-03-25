@@ -99,33 +99,25 @@ exports.updateReservation = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Reservation not found' });
         }
 
-        // Ensure the user is the owner or an admin
+        // Allow update if user owns the reservation or is admin
         if (reservation.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
             return res.status(403).json({ success: false, error: 'Not authorized' });
         }
 
-        // Prevent updating if the reservation is already cancelled
-        if (reservation.status === 'cancelled') {
-            return res.status(400).json({ success: false, error: 'Cannot update a cancelled reservation' });
-        }
-
-        // Validate the request body to allow only `date` and `timeSlot` updates
+        // Allow updates to date and timeSlot
         const allowedUpdates = {};
         if (req.body.date) allowedUpdates.date = req.body.date;
         if (req.body.timeSlot) allowedUpdates.timeSlot = req.body.timeSlot;
 
-        // If neither `date` nor `timeSlot` is provided, return an error
         if (Object.keys(allowedUpdates).length === 0) {
-            return res.status(400).json({ success: false, error: 'Please provide at least one field to update (date or timeSlot)' });
+            return res.status(400).json({ success: false, error: 'Please provide date or timeSlot to update' });
         }
 
-        // Perform the update
         reservation = await Reservation.findByIdAndUpdate(req.params.id, allowedUpdates, {
             new: true,
             runValidators: true
         });
 
-        // Return the updated reservation
         res.status(200).json({ success: true, data: reservation });
     } catch (error) {
         console.error(`❌ Error in ${req.method} ${req.originalUrl}:`, error);
@@ -143,13 +135,14 @@ exports.deleteReservation = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Reservation not found' });
         }
 
+        // Allow deletion if user owns the reservation or is admin
         if (reservation.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
             return res.status(403).json({ success: false, error: 'Not authorized' });
         }
 
-        await reservation.deleteOne();
+        await Reservation.findByIdAndDelete(req.params.id);
 
-        res.status(200).json({ success: true, message: "Reservation deleted" });
+        res.status(200).json({ success: true, message: "Reservation deleted successfully" });
     } catch (error) {
         console.error(`❌ Error in ${req.method} ${req.originalUrl}:`, error);
         res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });

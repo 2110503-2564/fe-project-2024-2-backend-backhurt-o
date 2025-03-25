@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Link from 'next/link';
-import { FiArrowLeft, FiUsers, FiMapPin, FiCalendar } from 'react-icons/fi';
+import { FiArrowLeft, FiUsers, FiMapPin, FiCalendar, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 interface Reservation {
   _id: string;
@@ -33,6 +33,18 @@ const AdminReservationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'cancelled'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTimeSlot, setNewTimeSlot] = useState('');
+  const [updateError, setUpdateError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const timeSlots = [
+    "09:00 - 12:00",
+    "12:00 - 15:00",
+    "15:00 - 18:00",
+    "18:00 - 21:00"
+  ];
 
   useEffect(() => {
     if (!isLoading) {
@@ -101,10 +113,124 @@ const AdminReservationsPage = () => {
     });
   };
 
+  const handleEdit = (reservation: Reservation) => {
+    setEditingReservation(reservation);
+    setNewDate(reservation.date.split('T')[0]);
+    setNewTimeSlot(reservation.timeSlot);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingReservation) return;
+
+    try {
+      await api.put(`/reservations/${editingReservation._id}`, {
+        date: newDate,
+        timeSlot: newTimeSlot
+      });
+
+      // Update local state
+      setFilteredReservations(prevReservations =>
+        prevReservations.map(res =>
+          res._id === editingReservation._id
+            ? { ...res, date: newDate, timeSlot: newTimeSlot }
+            : res
+        )
+      );
+      setReservations(prevReservations =>
+        prevReservations.map(res =>
+          res._id === editingReservation._id
+            ? { ...res, date: newDate, timeSlot: newTimeSlot }
+            : res
+        )
+      );
+
+      setEditingReservation(null);
+      setSuccessMessage('Reservation updated successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error updating reservation:', err);
+      setUpdateError('Failed to update reservation. Please try again.');
+      setTimeout(() => setUpdateError(''), 3000);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this reservation?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/reservations/${id}`);
+      setSuccessMessage('Reservation deleted successfully');
+      
+      // Update local state
+      setFilteredReservations(prev => prev.filter(res => res._id !== id));
+      setReservations(prev => prev.filter(res => res._id !== id));
+      
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error deleting reservation:', err);
+      setError('Failed to delete reservation. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   if (isLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (editingReservation) {
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="mt-3 text-center">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Edit Reservation</h3>
+            <div className="mt-2 px-7 py-3">
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Time Slot</label>
+                <select
+                  value={newTimeSlot}
+                  onChange={(e) => setNewTimeSlot(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                >
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+              {updateError && (
+                <div className="mb-4 text-red-500 text-sm">{updateError}</div>
+              )}
+            </div>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleUpdate}
+                className="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                Update
+              </button>
+              <button
+                onClick={() => setEditingReservation(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -135,6 +261,12 @@ const AdminReservationsPage = () => {
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
             <div className="text-sm text-red-600">{error}</div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="mb-4 bg-green-50 border border-green-200 rounded-md p-4">
+            <div className="text-sm text-green-600">{successMessage}</div>
           </div>
         )}
 
@@ -210,6 +342,12 @@ const AdminReservationsPage = () => {
                     >
                       Status
                     </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -259,6 +397,20 @@ const AdminReservationsPage = () => {
                           {reservation.status === 'active' ? 'Active' : 'Cancelled'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                        <button
+                          onClick={() => handleEdit(reservation)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        >
+                          <FiEdit2 className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(reservation._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <FiTrash2 className="h-5 w-5" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -271,4 +423,4 @@ const AdminReservationsPage = () => {
   );
 };
 
-export default AdminReservationsPage; 
+export default AdminReservationsPage;

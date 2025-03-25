@@ -218,7 +218,7 @@ const CoworkingSpacesPage = () => {
               filteredSpaces.map((space) => (
                 <div
                   key={space._id}
-                  className="bg-white overflow-hidden shadow rounded-lg border border-gray-200"
+                  className="bg-white overflow-hidden shadow rounded-lg border border-gray-200 relative pb-16"
                 >
                   <div className="px-4 py-5 sm:p-6">
                     <h3 className="text-lg leading-6 font-medium text-gray-900">{space.name}</h3>
@@ -236,7 +236,7 @@ const CoworkingSpacesPage = () => {
                         <p>{space.distance.toFixed(1)} km away</p>
                       </div>
                     )}
-                    <div className="mt-5">
+                    <div className="absolute bottom-4 left-4">
                       <Link
                         href={`/coworking-spaces/${space._id}`}
                         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
@@ -255,4 +255,4 @@ const CoworkingSpacesPage = () => {
   );
 };
 
-export default CoworkingSpacesPage; 
+export default CoworkingSpacesPage;

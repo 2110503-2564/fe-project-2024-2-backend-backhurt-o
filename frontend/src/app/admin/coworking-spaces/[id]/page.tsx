@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { FiMapPin, FiUsers, FiEdit2, FiTrash2, FiArrowLeft } from 'react-icons/fi';
+import { FiMapPin, FiUsers, FiEdit2, FiTrash2, FiArrowLeft, FiCalendar } from 'react-icons/fi';
 import Link from 'next/link';
 
 interface CoworkingSpace {
@@ -28,6 +28,9 @@ interface Reservation {
   date: string;
   timeSlot: string;
   status: string;
+  coworkingSpace: {
+    _id: string;
+  };
 }
 
 const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) => {
@@ -42,6 +45,20 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState('');
+
+  // Add new state variables
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [newDate, setNewDate] = useState('');
+  const [newTimeSlot, setNewTimeSlot] = useState('');
+  const [updateError, setUpdateError] = useState('');
+
+  // Add time slots constant
+  const timeSlots = [
+    "09:00 - 12:00",
+    "12:00 - 15:00",
+    "15:00 - 18:00",
+    "18:00 - 21:00"
+  ];
 
   useEffect(() => {
     if (!isLoading) {
@@ -71,9 +88,9 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
       
       setSpace(spaceResponse.data.data);
       
-      // Filter reservations for this space
+      // Filter reservations for this space by matching coworkingSpace._id
       const spaceReservations = reservationsResponse.data.data.filter(
-        (r: Reservation) => r.coworkingSpace === spaceId
+        (r: Reservation) => r.coworkingSpace._id === spaceId
       );
       setReservations(spaceReservations);
       
@@ -113,6 +130,60 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
     });
   };
 
+  // Replace handleEdit with this version
+  const handleEdit = (reservation: Reservation) => {
+    setEditingReservation(reservation);
+    setNewDate(reservation.date.split('T')[0]); // Format date for input
+    setNewTimeSlot(reservation.timeSlot);
+  };
+
+  // Add handleUpdate function
+  const handleUpdate = async () => {
+    if (!editingReservation) return;
+
+    try {
+      await api.put(`/reservations/${editingReservation._id}`, {
+        date: newDate,
+        timeSlot: newTimeSlot
+      });
+
+      // Update local state
+      setReservations(prevReservations =>
+        prevReservations.map(res =>
+          res._id === editingReservation._id
+            ? { ...res, date: newDate, timeSlot: newTimeSlot }
+            : res
+        )
+      );
+
+      setEditingReservation(null);
+      setSuccess('Reservation updated successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error updating reservation:', err);
+      setUpdateError('Failed to update reservation. Please try again.');
+      setTimeout(() => setUpdateError(''), 3000);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this reservation?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/reservations/${id}`);
+      setSuccess('Reservation deleted successfully');
+      // Update local state to remove the deleted reservation
+      setReservations(prev => prev.filter(res => res._id !== id));
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting reservation:', err);
+      setError('Failed to delete reservation. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   if (isLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -133,6 +204,59 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
             >
               Return to Admin Dashboard
             </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Add this before the main return to handle edit modal
+  if (editingReservation) {
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="mt-3 text-center">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Edit Reservation</h3>
+            <div className="mt-2 px-7 py-3">
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Time Slot</label>
+                <select
+                  value={newTimeSlot}
+                  onChange={(e) => setNewTimeSlot(e.target.value)}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                >
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
+              {updateError && (
+                <div className="mb-4 text-red-500 text-sm">{updateError}</div>
+              )}
+            </div>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleUpdate}
+                className="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                Update
+              </button>
+              <button
+                onClick={() => setEditingReservation(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -261,18 +385,38 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
                             >
                               Status
                             </th>
+                            <th
+                              scope="col"
+                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            >
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {reservations.map((reservation) => (
                             <tr key={reservation._id}>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">{reservation.user.name}</div>
-                                <div className="text-sm text-gray-500">{reservation.user.email}</div>
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                    <FiUsers className="h-5 w-5 text-indigo-600" />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{reservation.user.name}</div>
+                                    <div className="text-sm text-gray-500">{reservation.user.email}</div>
+                                  </div>
+                                </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-900">{formatDate(reservation.date)}</div>
-                                <div className="text-sm text-gray-500">{reservation.timeSlot}</div>
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <FiCalendar className="h-5 w-5 text-blue-600" />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm text-gray-900">{formatDate(reservation.date)}</div>
+                                    <div className="text-sm text-gray-500">{reservation.timeSlot}</div>
+                                  </div>
+                                </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span
@@ -284,6 +428,20 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
                                 >
                                   {reservation.status === 'active' ? 'Active' : 'Cancelled'}
                                 </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-left text-sm font-medium">
+                                <button
+                                  onClick={() => handleEdit(reservation)}
+                                  className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                >
+                                  <FiEdit2 className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(reservation._id)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  <FiTrash2 className="h-5 w-5" />
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -301,4 +459,4 @@ const CoworkingSpaceDetailAdminPage = ({ params }: { params: { id: string } }) =
   );
 };
 
-export default CoworkingSpaceDetailAdminPage; 
+export default CoworkingSpaceDetailAdminPage;
