@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { toast } from 'react-hot-toast'; // Add this if you want toast notifications
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5003/api/v1';
 
@@ -29,17 +28,16 @@ api.interceptors.request.use(
 // Response interceptor to handle common errors
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     // Network errors (no response)
     if (error.message === 'Network Error') {
-      toast?.error('Unable to connect to the server. Please check your internet connection.');
-      return Promise.reject(error);
+      console.error('Network error - cannot connect to API');
+      // You might want to show a global toast/notification here
     }
     
     // Timeout errors
     if (error.code === 'ECONNABORTED') {
-      toast?.error('Request timed out. Please try again.');
-      return Promise.reject(error);
+      console.error('Request timeout - server is not responding');
     }
 
     // Handle authentication errors
@@ -51,14 +49,15 @@ api.interceptors.response.use(
         // Only redirect if not already on the login page to avoid redirect loops
         const currentPath = window.location.pathname;
         if (!currentPath.includes('/auth/login')) {
-          window.location.href = '/auth/login?redirect=' + encodeURIComponent(currentPath);
+          window.location.href = '/auth/login';
         }
       }
     }
 
     // Handle server errors
     if (error.response?.status >= 500) {
-      toast?.error('An unexpected error occurred. Please try again later.');
+      console.error('Server error:', error.response.status);
+      // You might want to show a global error notification here
     }
 
     return Promise.reject(error);
