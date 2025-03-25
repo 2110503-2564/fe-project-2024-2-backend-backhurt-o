@@ -70,7 +70,11 @@ app.use('/api/v1/coworking-spaces', coworkingSpaceRoutes);  // Mounting the cowo
 
 
 
-// Test Route to check server functionality
+// Test Routes to check server functionality
+app.get('/', (req, res) => {
+    res.json({ success: true, message: 'API is running' });
+});
+
 app.get('/test', (req, res) => {
     res.json({ success: true, message: 'Test route works!' });
 });
@@ -85,3 +89,6 @@ process.on('unhandledRejection', (err, promise) => {
     console.log(`❌ Unhandled Error: ${err.message}`);
     server.close(() => process.exit(1));
 });
+
+// Export the Express API for Vercel serverless deployment
+module.exports = app;
