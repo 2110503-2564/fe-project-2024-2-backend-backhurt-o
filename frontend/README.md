@@ -1,86 +1,69 @@
-# Co-Working Space Reservation Frontend
+# Co-working Space Frontend
 
-This is the frontend for the Co-working Space Reservation System, built with Next.js, TypeScript, and Tailwind CSS.
+This is the frontend application for the Co-working Space Reservation System.
 
-## Features
+## Backend Connection
 
-- User authentication (login/register)
-- Browse available co-working spaces
-- Make reservations for specific time slots
-- View and manage your reservations
-- User profile management
-- Responsive UI for all devices
-
-## Prerequisites
-
-- Node.js 18.x or later
-- npm or yarn
-- Backend API running (default: http://localhost:5003)
+This frontend is configured to connect to the backend at: https://2-fe-backend.vercel.app/api/v1
 
 ## Getting Started
 
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd frontend-coworking
-```
-
+1. Clone the repository
 2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-```bash
-npm install
-# or
-yarn install
-```
+## Environment Setup
 
-3. Set up environment variables:
-   
-Create a `.env.local` file in the root directory with the following variables:
+- `.env.development` - Development environment (local development)
+- `.env.production` - Production environment (for deployment)
 
-```
-NEXT_PUBLIC_API_URL=http://localhost:5003/api/v1
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR-API-MAP-KEY
-```
+## Deployment to Vercel
 
-Adjust the URL to match your backend API endpoint.
+### Prerequisites
 
-4. Start the development server:
+1. Create a Vercel account at [vercel.com](https://vercel.com)
+2. Install Vercel CLI: `npm install -g vercel`
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+### Deployment Steps
 
-5. Open your browser and navigate to [http://localhost:3000](http://localhost:3000)
+1. **Login to Vercel**:
+   ```bash
+   vercel login
+   ```
 
-## Building for Production
+2. **Deploy to Vercel**:
+   ```bash
+   vercel
+   ```
+   Follow the prompts to complete the deployment.
 
-To build the app for production:
+3. **Environment Variables**:
+   Make sure to set the following environment variables in the Vercel dashboard:
+   - `NEXT_PUBLIC_API_URL`: Set to `https://2-fe-backend.vercel.app/api/v1`
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Your Google Maps API Key
 
-```bash
-npm run build
-# or
-yarn build
-```
+4. **Production Deployment**:
+   ```bash
+   vercel --prod
+   ```
 
-To run the production build:
+## Project Structure
 
-```bash
-npm run start
-# or
-yarn start
-```
+- `/src/app` - Next.js app router pages
+- `/src/components` - Reusable UI components
+- `/src/contexts` - React context providers
+- `/src/lib` - Utility functions and API client
 
-## Folder Structure
+## Features
 
-- `src/app`: Page components and app router
-- `src/components`: Reusable UI components
-- `src/contexts`: React context providers (auth, etc.)
-- `src/lib`: Utilities, API client, etc.
-- `public`: Static assets
-
-## Backend API
-
-This frontend is designed to work with the Co-working Space Reservation Backend API. Make sure the backend server is running before using this frontend.
+- Authentication (login, register, logout)
+- Co-working space browsing and search
+- Reservation creation and management
+- Admin panel for administrators
+- Interactive maps for location selection
