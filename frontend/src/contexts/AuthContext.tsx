@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { getAuthToken, setAuthToken, removeAuthToken, isAuthenticated } from '@/lib/auth';
 
 interface User {
   _id: string;
@@ -42,15 +43,12 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(getAuthToken());
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Check if user is authenticated on initial load
   useEffect(() => {
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (storedToken) {
-      setToken(storedToken);
+    if (token) {
       checkAuth();
     } else {
       setIsLoading(false);
@@ -58,22 +56,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const checkAuth = async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    
     try {
       setIsLoading(true);
+      const currentToken = getAuthToken();
+      
+      if (!currentToken) {
+        throw new Error('No token found');
+      }
+
       const response = await api.get('/auth/me');
       setUser(response.data.data);
+      setToken(currentToken);
     } catch (error) {
       console.error('Authentication check failed', error);
       setUser(null);
       setToken(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-      }
+      removeAuthToken();
+      router.push('/auth/login');
     } finally {
       setIsLoading(false);
     }
@@ -88,36 +87,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Invalid response from server');
       }
       
-      const { token } = response.data;
-      setToken(token);
+      const { token: newToken } = response.data;
+      setAuthToken(newToken);
+      setToken(newToken);
       
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', token);
-      }
-      
-      // Fetch user data
       const userResponse = await api.get('/auth/me');
-      if (!userResponse.data || !userResponse.data.data) {
-        throw new Error('Failed to retrieve user data');
-      }
-      
       const userData = userResponse.data.data;
       setUser(userData);
       
-      // Redirect based on user role
-      if (userData?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (error: unknown) {
+      router.push(userData?.role === 'admin' ? '/admin' : '/dashboard');
+    } catch (error) {
       console.error('Login failed', error);
-      // Clear any partial auth state on error
       setUser(null);
       setToken(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-      }
+      removeAuthToken();
       throw error;
     } finally {
       setIsLoading(false);
@@ -159,9 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setUser(null);
       setToken(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-      }
+      removeAuthToken();
       setIsLoading(false);
       router.push('/auth/login');
     }
@@ -170,7 +151,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     token,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!token,
     isLoading,
     login,
     register,
@@ -181,4 +162,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export default AuthProvider; 
+export default AuthProvider;
