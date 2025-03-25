@@ -21,9 +21,8 @@ interface CoworkingSpace {
 }
 
 const EditCoworkingSpacePage = ({ params }: { params: { id: string } }) => {
-  // Safely unwrap params using React.use()
-  const resolvedParams = React.use(params);
-  const spaceId = resolvedParams.id;
+  // Access params directly
+  const spaceId = params.id;
   
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -72,7 +71,7 @@ const EditCoworkingSpacePage = ({ params }: { params: { id: string } }) => {
     
     if (name === 'longitude' || name === 'latitude') {
       const index = name === 'longitude' ? 0 : 1;
-      const newCoordinates = [...formData.coordinates.coordinates];
+      const newCoordinates: [number, number] = [...formData.coordinates.coordinates];
       newCoordinates[index] = parseFloat(value) || 0;
       
       setFormData({
@@ -114,7 +113,7 @@ const EditCoworkingSpacePage = ({ params }: { params: { id: string } }) => {
     }
     
     // Update coordinates (note: coordinates array is [longitude, latitude])
-    const newCoordinates = [lng, lat];
+    const newCoordinates: [number, number] = [lng, lat];
     
     setFormData({
       ...formData,
@@ -157,9 +156,12 @@ const EditCoworkingSpacePage = ({ params }: { params: { id: string } }) => {
     try {
       await api.put(`/coworking-spaces/${spaceId}`, formData);
       router.push('/admin');
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error updating coworking space:', err);
-      setError(err.response?.data?.error || 'Failed to update coworking space. Please try again.');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to update coworking space. Please try again.';
+      setError(errorMessage);
       setIsSubmitting(false);
     }
   };
@@ -181,7 +183,7 @@ const EditCoworkingSpacePage = ({ params }: { params: { id: string } }) => {
     );
   };
 
-  const mapPosition = validateCoordinates() 
+  const mapPosition = validateCoordinates() && formData 
     ? { 
         lat: formData.coordinates.coordinates[1], 
         lng: formData.coordinates.coordinates[0] 

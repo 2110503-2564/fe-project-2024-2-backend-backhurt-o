@@ -236,7 +236,7 @@ const ReservationsPage = () => {
         <div className="mt-8">
           {reservations.length === 0 ? (
             <div className="text-center py-12 bg-white shadow overflow-hidden sm:rounded-lg">
-              <p className="text-gray-500">You don't have any reservations yet.</p>
+              <p className="text-gray-500">You do not have any reservations yet.</p>
               <Link
                 href="/coworking-spaces"
                 className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"

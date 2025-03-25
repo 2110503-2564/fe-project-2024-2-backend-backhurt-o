@@ -50,14 +50,16 @@ const LoginPage = () => {
     try {
       await login(email, password);
       // Login successful - redirect handled in the login function
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Login error:', err);
       setLoginAttempts(prev => prev + 1);
       
-      // Specific error handling based on response
-      if (err.response) {
-        const status = err.response.status;
-        const responseError = err.response.data?.error;
+      // Handle different error scenarios
+      const error = err as { response?: { status: number, data?: { error?: string } }, request?: unknown };
+      
+      if (error.response) {
+        const status = error.response.status;
+        const responseError = error.response.data?.error;
         
         if (status === 401) {
           setError('Invalid email or password. Please try again.');
@@ -70,7 +72,7 @@ const LoginPage = () => {
         } else {
           setError('Login failed. Please try again.');
         }
-      } else if (err.request) {
+      } else if (error.request) {
         // Request was made but no response
         setError('Cannot connect to server. Please check your internet connection and try again.');
       } else {

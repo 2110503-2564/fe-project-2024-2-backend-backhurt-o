@@ -31,9 +31,8 @@ const timeSlots = [
 ];
 
 const CoworkingSpaceDetailPage = ({ params }: { params: { id: string } }) => {
-  // Safely unwrap params using React.use()
-  const resolvedParams = React.use(params);
-  const spaceId = resolvedParams.id;
+  // Access params directly
+  const spaceId = params.id;
   
   const { isAuthenticated, isLoading } = useAuth();
   const [space, setSpace] = useState<CoworkingSpace | null>(null);
@@ -122,17 +121,19 @@ const CoworkingSpaceDetailPage = ({ params }: { params: { id: string } }) => {
       await api.post('/reservations', {
         coworkingSpace: spaceId,
         date: selectedDate,
-        timeSlot: selectedTimeSlot,
+        timeSlot: selectedTimeSlot
       });
       
+      // Show success message
       setReservationSuccess(true);
       setSelectedTimeSlot('');
       
       // Refresh booked slots
       fetchBookedSlots();
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error making reservation:', err);
-      setError(err.response?.data?.error || 'Failed to make reservation. Please try again.');
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to make reservation. Please try again.');
     }
   };
 

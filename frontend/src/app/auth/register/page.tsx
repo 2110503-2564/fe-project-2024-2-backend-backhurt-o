@@ -34,8 +34,12 @@ const RegisterPage = () => {
     try {
       await register(formData);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to register. Please try again.');
+    } catch (err: Error | unknown) {
+      console.error('Registration error:', err);
+      
+      // Handle different error scenarios
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to register. Please try again.');
     } finally {
       setIsLoading(false);
     }

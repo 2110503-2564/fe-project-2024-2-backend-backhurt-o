@@ -1,6 +1,5 @@
 {
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "ignoreCommand": "echo 'Ignoring build errors'"
+  "installCommand": "npm install"
 } 

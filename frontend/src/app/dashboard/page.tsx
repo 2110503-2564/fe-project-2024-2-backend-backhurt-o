@@ -27,7 +27,7 @@ interface CoworkingSpace {
 }
 
 const DashboardPage = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [suggestedSpaces, setSuggestedSpaces] = useState<CoworkingSpace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ const DashboardPage = () => {
   const MAX_SUGGESTED_SPACES = 3;
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       router.push('/auth/login');
       return;
     }
@@ -44,7 +44,7 @@ const DashboardPage = () => {
     if (isAuthenticated) {
       Promise.all([fetchReservations(), fetchSuggestedSpaces()]);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, authLoading, router]);
 
   const fetchReservations = async () => {
     try {
@@ -79,7 +79,7 @@ const DashboardPage = () => {
     });
   };
 
-  if (isLoading || loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -121,7 +121,7 @@ const DashboardPage = () => {
               
               {reservations.length === 0 ? (
                 <div className="mt-6 text-center text-gray-500 py-4">
-                  <p>You don't have any upcoming reservations.</p>
+                  <p>You do not have any upcoming reservations.</p>
                   <Link 
                     href="/coworking-spaces" 
                     className="inline-flex items-center mt-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"

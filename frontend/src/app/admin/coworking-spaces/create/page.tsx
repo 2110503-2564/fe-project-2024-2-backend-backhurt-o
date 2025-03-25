@@ -120,9 +120,12 @@ const CreateCoworkingSpacePage = () => {
     try {
       await api.post('/coworking-spaces', formData);
       router.push('/admin');
-    } catch (err: any) {
+    } catch (err: Error | unknown) {
       console.error('Error creating coworking space:', err);
-      setError(err.response?.data?.error || 'Failed to create coworking space. Please try again.');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to create coworking space. Please try again.';
+      setError(errorMessage);
       setIsSubmitting(false);
     }
   };
